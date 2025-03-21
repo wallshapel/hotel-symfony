@@ -41,6 +41,13 @@ class RegistrationController extends AbstractController
                 'message' => 'A user with this email already exists.'
             ], JsonResponse::HTTP_CONFLICT);
 
+        // Check if user with same username already exists
+        $existingUsername = $em->getRepository(User::class)->findOneBy(['username' => $username]);
+        if ($existingUsername)
+            return $this->json([
+                'message' => 'username already exists.'
+            ], JsonResponse::HTTP_CONFLICT);
+
         $user = new User();
         $user->setEmail($email);
         $user->setUsername($username);
