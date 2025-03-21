@@ -13,10 +13,8 @@ security:
         login:
             pattern: ^/api/v1/login
             stateless: true
-            json_login:
-                check_path: /api/v1/login
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            custom_authenticators:
+                - App\Security\JwtAuthenticator
    
         api:
             pattern:   ^/api
@@ -27,7 +25,7 @@ security:
             security: false
         main:
             lazy: true
-            provider: app_user_provider
+            provider: app_user_provider            
    
     access_control:
         - { path: ^/api/v1/register, roles: PUBLIC_ACCESS  }
