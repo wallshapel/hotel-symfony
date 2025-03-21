@@ -2,46 +2,65 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Doctrine\Persistence\ManagerRegistry;
-use App\Entity\User;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Validator\Validator\ValidatorInterface as ValidatorValidatorInterface;
 
 #[Route('/api/v1', name: 'api_v1_')]
 class RegistrationController extends AbstractController
 {
     #[Route('/register', name: 'register', methods: 'post')]
-    public function index(ManagerRegistry $doctrine, Request $request, UserPasswordHasherInterface $passwordHasher, ValidatorInterface $validator): JsonResponse
-    {
+    public function register(
+        ManagerRegistry $doctrine,
+        Request $request,
+        UserPasswordHasherInterface $passwordHasher,
+        ValidatorValidatorInterface $validator
+    ): JsonResponse {
         $em = $doctrine->getManager();
-        $decoded = json_decode($request->getContent());
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!is_array($data))
+            return $this->json([
+                'message' => 'Invalid JSON format.'
+            ], JsonResponse::HTTP_BAD_REQUEST);
+
+        $email = $data['email'] ?? '';
+        $username = $data['username'] ?? '';
+        $password = $data['password'] ?? '';
+
+        // Check if user with same email already exists
+        $existingUser = $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        if ($existingUser)
+            return $this->json([
+                'message' => 'A user with this email already exists.'
+            ], JsonResponse::HTTP_CONFLICT);
 
         $user = new User();
-        $user->setEmail($decoded->email ?? '');
-        $user->setUsername($decoded->email ?? '');
-        $user->setPassword($decoded->password ?? '');
+        $user->setEmail($email);
+        $user->setUsername($username);
+        $user->setPassword($password);
 
-        // Validate the user entity
+        // Validar con Symfony Validator
         $errors = $validator->validate($user);
-
         if (count($errors) > 0) {
             $errorMessages = [];
-            foreach ($errors as $error) {
+            foreach ($errors as $error)
                 $errorMessages[$error->getPropertyPath()] = $error->getMessage();
-            }
             return $this->json(['errors' => $errorMessages], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        // Hash password and save user
-        $hashedPassword = $passwordHasher->hashPassword($user, $decoded->password);
+        $hashedPassword = $passwordHasher->hashPassword($user, $password);
         $user->setPassword($hashedPassword);
+
         $em->persist($user);
         $em->flush();
 
-        return $this->json(['message' => 'Registered Successfully']);
+        return $this->json(['message' => 'Registered successfully'], JsonResponse::HTTP_CREATED);
     }
 }
