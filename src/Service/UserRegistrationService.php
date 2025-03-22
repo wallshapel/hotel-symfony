@@ -45,6 +45,7 @@ class UserRegistrationService
         $user->setEmail($email);
         $user->setUsername($username);
         $user->setPassword($password);
+        $user->setRoles(['ROLE_USER']);
 
         $errors = $this->validator->validate($user);
         if (count($errors) > 0) {
