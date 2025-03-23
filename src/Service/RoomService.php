@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Hotel;
 use App\Entity\Room;
+use App\Repository\RoomRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -12,11 +13,13 @@ class RoomService
 {
     private EntityManagerInterface $em;
     private ValidatorInterface $validator;
+    private RoomRepository $roomRepository;
 
-    public function __construct(EntityManagerInterface $em, ValidatorInterface $validator)
+    public function __construct(EntityManagerInterface $em, ValidatorInterface $validator, RoomRepository $roomRepository)
     {
         $this->em = $em;
         $this->validator = $validator;
+        $this->roomRepository = $roomRepository;
     }
 
     public function create(array $data): array
@@ -49,5 +52,26 @@ class RoomService
         $this->em->flush();
 
         return ['message' => 'Room created successfully.', 'status' => JsonResponse::HTTP_CREATED];
+    }
+
+    public function getAll(): array
+    {
+        $rooms = $this->roomRepository->findAll();
+
+        return array_map(function ($room) {
+            return [
+                'id' => $room->getId(),
+                'number' => $room->getNumber(),
+                'type' => $room->getType(),
+                'capacity' => $room->getCapacity(),
+                'price' => $room->getPrice(),
+                'status' => $room->getStatus(),
+                'hotel' => [
+                    'id' => $room->getHotel()->getId(),
+                    'name' => $room->getHotel()->getName(),
+                    'city' => $room->getHotel()->getCity(),
+                ],
+            ];
+        }, $rooms);
     }
 }

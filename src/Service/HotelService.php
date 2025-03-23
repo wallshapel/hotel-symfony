@@ -48,6 +48,7 @@ class HotelService
         $hotel->setCity($data['city'] ?? '');
         $hotel->setCountry($data['country'] ?? '');
         $hotel->setDescription($data['description'] ?? '');
+        $hotel->setCreatedAt(new \DateTimeImmutable());
 
         $errors = $this->validator->validate($hotel);
         if (count($errors) > 0) {

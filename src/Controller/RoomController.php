@@ -21,4 +21,11 @@ class RoomController extends AbstractController
 
         return $this->json($result, $result['status']);
     }
+
+    #[Route('/rooms', name: 'list', methods: ['get'])]
+    public function list(RoomService $roomService): JsonResponse
+    {
+        $rooms = $roomService->getAll();
+        return $this->json($rooms);
+    }
 }
