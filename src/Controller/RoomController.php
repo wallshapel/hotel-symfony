@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1', name: 'api_v1_rooms_')]
 class RoomController extends AbstractController
 {
-    #[Route('room', name: 'create', methods: ['post'])]
+    #[Route('/room', name: 'create', methods: ['post'])]
     public function create(Request $request, RoomService $roomService): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
