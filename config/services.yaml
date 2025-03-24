@@ -1,5 +1,5 @@
 parameters:
-    imageDir: "%kernel.project_dir%/public/uploads"
+    image_directory: "%kernel.project_dir%/public/uploads"
 
 services:
     _defaults:
@@ -12,3 +12,7 @@ services:
             - "../src/DependencyInjection/"
             - "../src/Entity/"
             - "../src/Kernel.php"
+
+    App\Service\ImageUploadService:
+        arguments:
+            $imageDir: "%image_directory%"
