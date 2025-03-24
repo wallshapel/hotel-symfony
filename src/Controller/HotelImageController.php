@@ -23,4 +23,15 @@ class HotelImageController extends AbstractController
         $result = $imageUploadService->uploadHotelImage($id, $request);
         return $this->json($result, $result['status']);
     }
+
+    #[Route('/{id}/images', name: 'hotel_images', methods: ['GET'])]
+    public function getHotelImages(int $id, ImageUploadService $imageUploadService): JsonResponse
+    {
+        $result = $imageUploadService->getHotelImages($id);
+
+        if (isset($result['status']))
+            return $this->json($result, $result['status']);
+
+        return $this->json($result);
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Image;
 use App\Repository\HotelRepository;
+use App\Repository\ImageRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -65,5 +66,27 @@ class ImageUploadService
             'url' => '/uploads/' . $newFilename,
             'status' => JsonResponse::HTTP_CREATED
         ];
+    }
+
+    public function getHotelImages(int $hotelId): array
+    {
+        $hotel = $this->hotelRepository->find($hotelId);
+        if (!$hotel)
+            return [
+                'message' => 'Hotel not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+
+        $images = $hotel->getImages();
+        $data = [];
+
+        foreach ($images as $image)
+            $data[] = [
+                'filename' => $image->getFilename(),
+                'originalName' => $image->getOriginalName(),
+                'url' => '/uploads/' . $image->getFilename()
+            ];
+
+        return $data;
     }
 }
