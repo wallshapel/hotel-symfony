@@ -7,6 +7,10 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ImageRepository::class)]
+#[Assert\Expression(
+    "!(this.getHotel() and this.getRoom()) and (this.getHotel() or this.getRoom())",
+    message: "Image must be associated with either a hotel or a room, but not both or neither."
+)]
 class Image
 {
     #[ORM\Id]
