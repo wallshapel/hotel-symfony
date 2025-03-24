@@ -14,11 +14,19 @@ class BookingController extends AbstractController
     #[Route('/booking', name: 'create', methods: ['post'])]
     public function create(Request $request, BookingService $bookingService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER'); // o ROLE_ADMIN también si lo ves necesario
-
+        $this->denyAccessUnlessGranted('ROLE_USER');
         $data = json_decode($request->getContent(), true);
         $result = $bookingService->create($data);
 
+        return $this->json($result, $result['status']);
+    }
+
+    #[Route('/bookings', name: 'list', methods: ['get'])]
+    public function list(BookingService $bookingService): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $result = $bookingService->getUserBookings();
         return $this->json($result, $result['status']);
     }
 }

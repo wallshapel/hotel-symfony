@@ -29,20 +29,39 @@ class BookingService
     {
         $user = $this->tokenStorage->getToken()?->getUser();
 
-        if (!$user) {
+        if (!$user)
             return ['message' => 'Unauthorized', 'status' => JsonResponse::HTTP_UNAUTHORIZED];
-        }
 
         $room = $this->em->getRepository(Room::class)->find($data['room_id'] ?? null);
-        if (!$room) {
+        if (!$room)
             return ['message' => 'Room not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
-        }
 
         try {
             $startDate = new \DateTime($data['start_date'] ?? '');
             $endDate = new \DateTime($data['end_date'] ?? '');
         } catch (\Exception $e) {
             return ['message' => 'Invalid date format.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $conflictingBooking = $this->em->getRepository(Booking::class)
+            ->createQueryBuilder('b')
+            ->andWhere('b.room = :room')
+            ->andWhere('
+            (:startDate BETWEEN b.startDate AND b.endDate) OR
+            (:endDate BETWEEN b.startDate AND b.endDate) OR
+            (b.startDate BETWEEN :startDate AND :endDate)
+        ')
+            ->setParameter('room', $room)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($conflictingBooking) {
+            return [
+                'message' => 'This room is already booked during the selected period.',
+                'status' => JsonResponse::HTTP_CONFLICT
+            ];
         }
 
         $booking = new Booking();
@@ -65,5 +84,34 @@ class BookingService
         $this->em->flush();
 
         return ['message' => 'Booking created successfully.', 'status' => JsonResponse::HTTP_CREATED];
+    }
+
+    public function getUserBookings(): array
+    {
+        $token = $this->tokenStorage->getToken();
+        $user = $token?->getUser();
+
+        if (!$user || !$user instanceof \App\Entity\User)
+            return ['message' => 'Unauthorized', 'status' => JsonResponse::HTTP_UNAUTHORIZED];
+
+        $bookings = $user->getBookings();
+
+        return [
+            'data' => array_map(function (Booking $booking) {
+                return [
+                    'id' => $booking->getId(),
+                    'room' => [
+                        'id' => $booking->getRoom()->getId(),
+                        'name' => $booking->getRoom()->getNumber(),
+                        'price' => $booking->getRoom()->getPrice()
+                    ],
+                    'start_date' => $booking->getStartDate()->format('Y-m-d'),
+                    'end_date' => $booking->getEndDate()->format('Y-m-d'),
+                    'status' => $booking->getStatus(),
+                    'created_at' => $booking->getCreatedAt()->format('Y-m-d H:i:s')
+                ];
+            }, $bookings->toArray()),
+            'status' => JsonResponse::HTTP_OK
+        ];
     }
 }
