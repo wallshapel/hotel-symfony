@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\Image;
 use App\Repository\RoomRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -46,9 +47,13 @@ class Room
     #[ORM\OneToMany(mappedBy: 'room', targetEntity: Booking::class, orphanRemoval: true)]
     private Collection $bookings;
 
+    #[ORM\OneToMany(mappedBy: 'room', targetEntity: Image::class, cascade: ['persist', 'remove'])]
+    private Collection $images;
+
     public function __construct()
     {
         $this->bookings = new ArrayCollection();
+        $this->images = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -141,9 +146,36 @@ class Room
     public function removeBooking(Booking $booking): static
     {
         if ($this->bookings->removeElement($booking)) {
-            if ($booking->getRoom() === $this) {
+            if ($booking->getRoom() === $this)
                 $booking->setRoom(null);
-            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Image>
+     */
+    public function getImages(): Collection
+    {
+        return $this->images;
+    }
+
+    public function addImage(Image $image): static
+    {
+        if (!$this->images->contains($image)) {
+            $this->images->add($image);
+            $image->setRoom($this);
+        }
+
+        return $this;
+    }
+
+    public function removeImage(Image $image): static
+    {
+        if ($this->images->removeElement($image)) {
+            if ($image->getRoom() === $this)
+                $image->setRoom(null);
         }
 
         return $this;
