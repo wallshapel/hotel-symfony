@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Entity\Image;
 use App\Entity\Room;
 use App\Repository\HotelRepository;
-use App\Repository\ImageRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -126,7 +125,7 @@ class ImageUploadService
             $data[] = [
                 'filename' => $image->getFilename(),
                 'originalName' => $image->getOriginalName(),
-                'url' => '/uploads/' . $image->getFilename()
+                'url' => '/uploads/images/hotels/' . $image->getFilename()
             ];
 
         return $data;
@@ -148,9 +147,105 @@ class ImageUploadService
             $data[] = [
                 'filename' => $image->getFilename(),
                 'originalName' => $image->getOriginalName(),
-                'url' => '/uploads/' . $image->getFilename()
+                'url' => '/uploads/images/rooms/' . $image->getFilename()
             ];
 
         return $data;
+    }
+
+    public function updateHotelImage(int $imageId, Request $request): array
+    {
+        $file = $request->files->get('image');
+        if (!$file)
+            return [
+                'message' => 'No image uploaded.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+
+        $image = $this->em->getRepository(Image::class)->find($imageId);
+        if (!$image || !$image->getHotel())
+            return [
+                'message' => 'Hotel image not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+
+
+        $previousPath = $this->imageDir . '/images/hotels/' . $image->getFilename();
+        if (file_exists($previousPath))
+            unlink($previousPath);
+
+        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = $this->slugger->slug($originalFilename);
+        $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
+        $destination = $this->imageDir . '/images/hotels/';
+
+        try {
+            if (!file_exists($destination))
+                mkdir($destination, 0777, true);
+
+            $file->move($destination, $newFilename);
+        } catch (FileException $e) {
+            return [
+                'message' => 'Image upload failed.',
+                'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR
+            ];
+        }
+
+        $image->setFilename($newFilename);
+        $image->setOriginalName($file->getClientOriginalName());
+
+        $this->em->flush();
+
+        return [
+            'message' => 'Hotel image updated successfully.',
+            'filename' => $newFilename,
+            'url' => '/uploads/images/hotels/' . $newFilename,
+            'status' => JsonResponse::HTTP_OK
+        ];
+    }
+
+    public function updateRoomImage(int $imageId, Request $request): array
+    {
+        $image = $this->em->getRepository(Image::class)->find($imageId);
+        if (!$image || !$image->getRoom())
+            return [
+                'message' => 'Room image not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+
+        $file = $request->files->get('image');
+        if (!$file)
+            return [
+                'message' => 'No image uploaded.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+
+        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $safeFilename = $this->slugger->slug($originalFilename);
+        $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
+
+        try {
+            $directory = $this->imageDir . '/images/rooms';
+            if (!file_exists($directory))
+                mkdir($directory, 0777, true);
+
+            $file->move($directory, $newFilename);
+        } catch (FileException $e) {
+            return [
+                'message' => 'Image upload failed.',
+                'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR
+            ];
+        }
+
+        $image->setFilename($newFilename);
+        $image->setOriginalName($file->getClientOriginalName());
+        $this->em->flush();
+
+        return [
+            'message' => 'Room image updated successfully.',
+            'filename' => $newFilename,
+            'url' => '/uploads/images/rooms/' . $newFilename,
+            'status' => JsonResponse::HTTP_OK
+        ];
     }
 }

@@ -17,7 +17,6 @@ class HotelImageController extends AbstractController
         Request $request,
         ImageUploadService $imageUploadService
     ): JsonResponse {
-
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
         $result = $imageUploadService->uploadHotelImage($id, $request);
@@ -33,5 +32,18 @@ class HotelImageController extends AbstractController
             return $this->json($result, $result['status']);
 
         return $this->json($result);
+    }
+
+    #[Route('/hotel/image/{id}/update', name: 'update_hotel_image', methods: ['POST'], defaults: ['_format' => null])]
+    public function updateHotelImage(
+        int $id,
+        Request $request,
+        ImageUploadService $imageUploadService
+    ): JsonResponse {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $result = $imageUploadService->updateHotelImage($id, $request);
+
+        return $this->json($result, $result['status']);
     }
 }
