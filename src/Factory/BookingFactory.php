@@ -6,7 +6,6 @@ use App\Entity\Booking;
 use App\Repository\RoomRepository;
 use App\Repository\UserRepository;
 use Zenstruck\Foundry\Persistence\PersistentProxyObjectFactory;
-use Zenstruck\Foundry\Proxy;
 
 final class BookingFactory extends PersistentProxyObjectFactory
 {
@@ -33,14 +32,27 @@ final class BookingFactory extends PersistentProxyObjectFactory
         $endDate = (clone $startDate)->modify('+' . random_int(1, 5) . ' days');
 
         $users = $this->userRepository->findUsersWithRole('ROLE_USER');
-        $rooms = $this->roomRepository->findAll();
+        $user = $faker->randomElement($users);
+
+        $pendingRooms = $this->roomRepository->findBy(['status' => 'pending']);
+
+        $reservedRooms = $this->roomRepository->findBy(['status' => 'reserved']);
+
+        $status = $faker->randomElement(['pending', 'reserved']);
+
+        if ($status === 'reserved') {
+            $room = $faker->randomElement($reservedRooms);
+            $room->setStatus('reserved');
+        } else {
+            $room = $faker->randomElement($pendingRooms);
+        }
 
         return [
-            'user' => $faker->randomElement($users),
-            'room' => $faker->randomElement($rooms),
+            'user' => $user,
+            'room' => $room,
             'startDate' => $startDate,
             'endDate' => $endDate,
-            'status' => $faker->randomElement(['pending', 'reserved']),
+            'status' => $status,
             'createdAt' => new \DateTime(),
         ];
     }
