@@ -99,4 +99,24 @@ class RoomService
 
         return $data;
     }
+
+    public function delete(int $id): array
+    {
+        $room = $this->em->getRepository(Room::class)->find($id);
+
+        if (!$room) {
+            return [
+                'message' => 'Room not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $this->em->remove($room);
+        $this->em->flush();
+
+        return [
+            'message' => 'Room deleted successfully.',
+            'status' => JsonResponse::HTTP_OK
+        ];
+    }
 }

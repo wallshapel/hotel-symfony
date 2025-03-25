@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1', name: 'api_v1_rooms_')]
 class RoomController extends AbstractController
 {
-    #[Route('/room', name: 'create', methods: ['post'])]
+    #[Route('/room', name: 'create', methods: ['POST'])]
     public function create(Request $request, RoomService $roomService): JsonResponse
     {
         $user = $this->getUser();
@@ -26,7 +26,7 @@ class RoomController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/rooms', name: 'list', methods: ['get'])]
+    #[Route('/rooms', name: 'list', methods: ['GET'])]
     public function list(RoomService $roomService): JsonResponse
     {
         $rooms = $roomService->getAll();
@@ -69,5 +69,17 @@ class RoomController extends AbstractController
         return isset($result['status'])
             ? $this->json($result, $result['status'])
             : $this->json($result);
+    }
+
+    #[Route('/room/{id}', name: 'delete', methods: ['DELETE'])]
+    public function delete(int $id, RoomService $roomService): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
+        }
+
+        $result = $roomService->delete($id);
+        return $this->json($result, $result['status']);
     }
 }
