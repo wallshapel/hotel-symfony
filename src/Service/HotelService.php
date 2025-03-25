@@ -63,4 +63,29 @@ class HotelService
 
         return ['message' => 'Hotel created successfully.', 'status' => JsonResponse::HTTP_CREATED];
     }
+
+    public function getHotelImages(int $hotelId): array
+    {
+        $hotel = $this->hotelRepository->find($hotelId);
+        if (!$hotel) {
+            return [
+                'message' => 'Hotel not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $images = $hotel->getImages();
+        $data = [];
+
+        foreach ($images as $image) {
+            $data[] = [
+                'id' => $image->getId(),
+                'filename' => $image->getFilename(),
+                'originalName' => $image->getOriginalName(),
+                'url' => '/uploads/images/hotels/' . $image->getFilename()
+            ];
+        }
+
+        return $data;
+    }
 }

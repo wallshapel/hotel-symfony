@@ -74,4 +74,29 @@ class RoomService
             ];
         }, $rooms);
     }
+
+    public function getRoomImages(int $roomId): array
+    {
+        $room = $this->em->getRepository(Room::class)->find($roomId);
+        if (!$room) {
+            return [
+                'message' => 'Room not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $images = $room->getImages();
+        $data = [];
+
+        foreach ($images as $image) {
+            $data[] = [
+                'id' => $image->getId(),
+                'filename' => $image->getFilename(),
+                'originalName' => $image->getOriginalName(),
+                'url' => '/uploads/images/rooms/' . $image->getFilename()
+            ];
+        }
+
+        return $data;
+    }
 }

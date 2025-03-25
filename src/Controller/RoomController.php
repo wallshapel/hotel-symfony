@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\ImageUploadService;
 use App\Service\RoomService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,5 +28,37 @@ class RoomController extends AbstractController
     {
         $rooms = $roomService->getAll();
         return $this->json($rooms);
+    }
+
+    #[Route('/rooms/image/{id}/update', name: 'update_room_image', methods: ['POST'], defaults: ['_format' => null])]
+    public function updateRoomImage(
+        int $id,
+        Request $request,
+        ImageUploadService $imageUploadService
+    ): JsonResponse {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $result = $imageUploadService->updateRoomImage($id, $request);
+        return $this->json($result, $result['status']);
+    }
+
+    #[Route('/rooms/{id}/images', name: 'room_images', methods: ['GET'])]
+    public function getRoomImages(int $id, RoomService $roomService): JsonResponse
+    {
+        $result = $roomService->getRoomImages($id);
+
+        return isset($result['status'])
+            ? $this->json($result, $result['status'])
+            : $this->json($result);
+    }
+
+    #[Route('/rooms/{id}/upload-image', name: 'upload_room_image', methods: ['POST'], defaults: ['_format' => null])]
+    public function uploadRoomImage(int $id, Request $request, ImageUploadService $imageUploadService): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $result = $imageUploadService->uploadRoomImage($id, $request);
+
+        return $this->json($result, $result['status']);
     }
 }

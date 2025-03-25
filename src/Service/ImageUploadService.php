@@ -69,7 +69,6 @@ class ImageUploadService
         ];
     }
 
-
     public function uploadRoomImage(int $roomId, Request $request): array
     {
         $room = $this->em->getRepository(Room::class)->find($roomId);
@@ -109,66 +108,23 @@ class ImageUploadService
         ];
     }
 
-    public function getHotelImages(int $hotelId): array
-    {
-        $hotel = $this->hotelRepository->find($hotelId);
-        if (!$hotel)
-            return [
-                'message' => 'Hotel not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
-
-        $images = $hotel->getImages();
-        $data = [];
-
-        foreach ($images as $image)
-            $data[] = [
-                'filename' => $image->getFilename(),
-                'originalName' => $image->getOriginalName(),
-                'url' => '/uploads/images/hotels/' . $image->getFilename()
-            ];
-
-        return $data;
-    }
-
-    public function getRoomImages(int $roomId): array
-    {
-        $room = $this->em->getRepository(Room::class)->find($roomId);
-        if (!$room)
-            return [
-                'message' => 'Room not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
-
-        $images = $room->getImages();
-        $data = [];
-
-        foreach ($images as $image)
-            $data[] = [
-                'filename' => $image->getFilename(),
-                'originalName' => $image->getOriginalName(),
-                'url' => '/uploads/images/rooms/' . $image->getFilename()
-            ];
-
-        return $data;
-    }
-
     public function updateHotelImage(int $imageId, Request $request): array
     {
         $file = $request->files->get('image');
-        if (!$file)
+        if (!$file) {
             return [
                 'message' => 'No image uploaded.',
                 'status' => JsonResponse::HTTP_BAD_REQUEST
             ];
+        }
 
         $image = $this->em->getRepository(Image::class)->find($imageId);
-        if (!$image || !$image->getHotel())
+        if (!$image || !$image->getHotel()) {
             return [
                 'message' => 'Hotel image not found.',
                 'status' => JsonResponse::HTTP_NOT_FOUND
             ];
-
+        }
 
         $previousPath = $this->imageDir . '/images/hotels/' . $image->getFilename();
         if (file_exists($previousPath))
@@ -206,30 +162,36 @@ class ImageUploadService
 
     public function updateRoomImage(int $imageId, Request $request): array
     {
-        $image = $this->em->getRepository(Image::class)->find($imageId);
-        if (!$image || !$image->getRoom())
-            return [
-                'message' => 'Room image not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
-
         $file = $request->files->get('image');
-        if (!$file)
+        if (!$file) {
             return [
                 'message' => 'No image uploaded.',
                 'status' => JsonResponse::HTTP_BAD_REQUEST
             ];
+        }
+
+        $image = $this->em->getRepository(Image::class)->find($imageId);
+        if (!$image || !$image->getRoom()) {
+            return [
+                'message' => 'Room image not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $previousPath = $this->imageDir . '/images/rooms/' . $image->getFilename();
+        if (file_exists($previousPath))
+            unlink($previousPath);
 
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeFilename = $this->slugger->slug($originalFilename);
         $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
+        $destination = $this->imageDir . '/images/rooms/';
 
         try {
-            $directory = $this->imageDir . '/images/rooms';
-            if (!file_exists($directory))
-                mkdir($directory, 0777, true);
+            if (!file_exists($destination))
+                mkdir($destination, 0777, true);
 
-            $file->move($directory, $newFilename);
+            $file->move($destination, $newFilename);
         } catch (FileException $e) {
             return [
                 'message' => 'Image upload failed.',
@@ -239,6 +201,7 @@ class ImageUploadService
 
         $image->setFilename($newFilename);
         $image->setOriginalName($file->getClientOriginalName());
+
         $this->em->flush();
 
         return [
