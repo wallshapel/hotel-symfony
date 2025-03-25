@@ -64,4 +64,19 @@ class UserRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findUsersWithRole(string $role): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $sql = 'SELECT id FROM user WHERE JSON_CONTAINS(roles, :role)';
+        $stmt = $conn->prepare($sql);
+        $resultSet = $stmt->executeQuery([
+            'role' => json_encode($role),
+        ]);
+
+        $ids = array_column($resultSet->fetchAllAssociative(), 'id');
+
+        return $this->findBy(['id' => $ids]);
+    }
 }

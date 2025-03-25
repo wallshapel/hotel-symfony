@@ -2,10 +2,8 @@
 
 namespace App\Factory;
 
-use App\Entity\Hotel;
 use App\Entity\Room;
 use Zenstruck\Foundry\Persistence\PersistentProxyObjectFactory;
-use Zenstruck\Foundry\Proxy;
 
 final class RoomFactory extends PersistentProxyObjectFactory
 {
