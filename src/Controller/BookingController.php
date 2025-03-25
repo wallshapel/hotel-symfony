@@ -29,4 +29,15 @@ class BookingController extends AbstractController
         $result = $bookingService->getUserBookings();
         return $this->json($result, $result['status']);
     }
+
+    #[Route('/booking/{id}', name: 'update', methods: ['patch'])]
+    public function update(int $id, Request $request, BookingService $bookingService): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $data = json_decode($request->getContent(), true);
+        $result = $bookingService->update($id, $data);
+
+        return $this->json($result, $result['status']);
+    }
 }

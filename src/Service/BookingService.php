@@ -71,6 +71,7 @@ class BookingService
         $booking->setEndDate($endDate);
         $booking->setStatus('pending');
         $booking->setCreatedAt(new \DateTimeImmutable());
+        $room->setStatus('reserved');
 
         $errors = $this->validator->validate($booking);
         if (count($errors) > 0) {
@@ -113,5 +114,76 @@ class BookingService
             }, $bookings->toArray()),
             'status' => JsonResponse::HTTP_OK
         ];
+    }
+
+    public function update(int $bookingId, array $data): array
+    {
+        $user = $this->tokenStorage->getToken()?->getUser();
+
+        if (!$user || !$user instanceof \App\Entity\User)
+            return ['message' => 'Unauthorized', 'status' => JsonResponse::HTTP_UNAUTHORIZED];
+
+        if (!$user)
+            return ['message' => 'Unauthorized', 'status' => JsonResponse::HTTP_UNAUTHORIZED];
+
+        $booking = $this->em->getRepository(Booking::class)->find($bookingId);
+        if (!$booking) {
+            return ['message' => 'Booking not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
+        }
+
+        if (!in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+            if ($booking->getUser()->getId() !== $user->getId()) {
+                return ['message' => 'Forbidden. You can only modify your own bookings.', 'status' => JsonResponse::HTTP_FORBIDDEN];
+            }
+        }
+
+        try {
+            $startDate = new \DateTime($data['start_date'] ?? '');
+            $endDate = new \DateTime($data['end_date'] ?? '');
+        } catch (\Exception $e) {
+            return ['message' => 'Invalid date format.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $room = $booking->getRoom();
+
+        $conflictingBooking = $this->em->getRepository(Booking::class)
+            ->createQueryBuilder('b')
+            ->andWhere('b.room = :room')
+            ->andWhere('b.id != :currentBooking')
+            ->andWhere('
+            (:startDate BETWEEN b.startDate AND b.endDate) OR
+            (:endDate BETWEEN b.startDate AND b.endDate) OR
+            (b.startDate BETWEEN :startDate AND :endDate)
+        ')
+            ->setParameter('room', $room)
+            ->setParameter('currentBooking', $booking->getId())
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if ($conflictingBooking) {
+            return [
+                'message' => 'This room is already booked during the selected period.',
+                'status' => JsonResponse::HTTP_CONFLICT
+            ];
+        }
+
+        $booking->setStartDate($startDate);
+        $booking->setEndDate($endDate);
+        $booking->setStatus('pending');
+        $room->setStatus('reserved');
+
+        $errors = $this->validator->validate($booking);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error)
+                $errorMessages[$error->getPropertyPath()] = $error->getMessage();
+            return ['errors' => $errorMessages, 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $this->em->flush();
+
+        return ['message' => 'Booking updated successfully.', 'status' => JsonResponse::HTTP_OK];
     }
 }
