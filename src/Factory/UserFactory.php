@@ -12,7 +12,7 @@ final class UserFactory extends PersistentProxyObjectFactory
 
     public function __construct(UserPasswordHasherInterface $passwordHasher)
     {
-        parent::__construct(); // Llama al constructor padre
+        parent::__construct();
         $this->passwordHasher = $passwordHasher;
     }
 
