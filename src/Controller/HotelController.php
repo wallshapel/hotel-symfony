@@ -28,6 +28,7 @@ class HotelController extends AbstractController
 
         return $this->json($result, $result['status']);
     }
+
     #[Route('/hotel/{id}/upload-image', name: 'upload_image', methods: ['POST'], defaults: ['_format' => null])]
     public function uploadImage(
         int $id,

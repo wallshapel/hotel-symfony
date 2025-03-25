@@ -30,6 +30,16 @@ class RoomController extends AbstractController
         return $this->json($rooms);
     }
 
+    #[Route('/rooms/{id}/upload-image', name: 'upload_room_image', methods: ['POST'], defaults: ['_format' => null])]
+    public function uploadRoomImage(int $id, Request $request, ImageUploadService $imageUploadService): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+
+        $result = $imageUploadService->uploadRoomImage($id, $request);
+
+        return $this->json($result, $result['status']);
+    }
+
     #[Route('/rooms/image/{id}/update', name: 'update_room_image', methods: ['POST'], defaults: ['_format' => null])]
     public function updateRoomImage(
         int $id,
@@ -50,15 +60,5 @@ class RoomController extends AbstractController
         return isset($result['status'])
             ? $this->json($result, $result['status'])
             : $this->json($result);
-    }
-
-    #[Route('/rooms/{id}/upload-image', name: 'upload_room_image', methods: ['POST'], defaults: ['_format' => null])]
-    public function uploadRoomImage(int $id, Request $request, ImageUploadService $imageUploadService): JsonResponse
-    {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
-
-        $result = $imageUploadService->uploadRoomImage($id, $request);
-
-        return $this->json($result, $result['status']);
     }
 }

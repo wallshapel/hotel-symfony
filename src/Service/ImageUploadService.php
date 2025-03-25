@@ -33,38 +33,68 @@ class ImageUploadService
     public function uploadHotelImage(int $hotelId, Request $request): array
     {
         $hotel = $this->hotelRepository->find($hotelId);
-        if (!$hotel)
-            return ['message' => 'Hotel not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
-
-        $file = $request->files->get('image');
-        if (!$file)
-            return ['message' => 'No image uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
-
-        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = $this->slugger->slug($originalFilename);
-        $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
-
-        $directory = $this->imageDir . '/images/hotels';
-        try {
-            if (!file_exists($directory))
-                mkdir($directory, 0777, true);
-            $file->move($directory, $newFilename);
-        } catch (FileException $e) {
-            return ['message' => 'Image upload failed.', 'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR];
+        if (!$hotel) {
+            return [
+                'message' => 'Hotel not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
         }
 
-        $image = new Image();
-        $image->setFilename($newFilename);
-        $image->setOriginalName($file->getClientOriginalName());
-        $image->setHotel($hotel);
+        $files = $request->files->get('image');
+        if (!$files) {
+            return [
+                'message' => 'No images uploaded.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+        }
 
-        $this->em->persist($image);
+        $files = is_array($files) ? $files : [$files];
+
+        $directory = $this->imageDir . '/images/hotels';
+        if (!file_exists($directory))
+            mkdir($directory, 0777, true);
+
+        $uploaded = [];
+
+        foreach ($files as $file) {
+            if (!$file->isValid()) continue;
+
+            $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $safeFilename = $this->slugger->slug($originalFilename);
+            $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
+
+            try {
+                $file->move($directory, $newFilename);
+            } catch (FileException $e) {
+                continue;
+            }
+
+            $image = new Image();
+            $image->setFilename($newFilename);
+            $image->setOriginalName($file->getClientOriginalName());
+            $image->setHotel($hotel);
+
+            $this->em->persist($image);
+
+            $uploaded[] = [
+                'filename' => $newFilename,
+                'originalName' => $file->getClientOriginalName(),
+                'url' => '/uploads/images/hotels/' . $newFilename
+            ];
+        }
+
         $this->em->flush();
 
+        if (empty($uploaded)) {
+            return [
+                'message' => 'No valid images were uploaded.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+        }
+
         return [
-            'message' => 'Image uploaded successfully.',
-            'filename' => $newFilename,
-            'url' => '/uploads/images/hotels/' . $newFilename,
+            'message' => 'Images uploaded successfully.',
+            'images' => $uploaded,
             'status' => JsonResponse::HTTP_CREATED
         ];
     }
@@ -72,38 +102,63 @@ class ImageUploadService
     public function uploadRoomImage(int $roomId, Request $request): array
     {
         $room = $this->em->getRepository(Room::class)->find($roomId);
-        if (!$room)
+        if (!$room) {
             return ['message' => 'Room not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
-
-        $file = $request->files->get('image');
-        if (!$file)
-            return ['message' => 'No image uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
-
-        $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $safeFilename = $this->slugger->slug($originalFilename);
-        $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
-
-        $directory = $this->imageDir . '/images/rooms';
-        try {
-            if (!file_exists($directory))
-                mkdir($directory, 0777, true);
-            $file->move($directory, $newFilename);
-        } catch (FileException $e) {
-            return ['message' => 'Image upload failed.', 'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR];
         }
 
-        $image = new Image();
-        $image->setFilename($newFilename);
-        $image->setOriginalName($file->getClientOriginalName());
-        $image->setRoom($room);
+        $files = $request->files->get('image');
 
-        $this->em->persist($image);
+        if (!$files) {
+            return ['message' => 'No images uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $files = is_array($files) ? $files : [$files];
+
+        $directory = $this->imageDir . '/images/rooms';
+        if (!file_exists($directory)) {
+            mkdir($directory, 0777, true);
+        }
+
+        $uploaded = [];
+
+        foreach ($files as $file) {
+            if (!$file->isValid()) {
+                continue;
+            }
+
+            $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $safeFilename = $this->slugger->slug($originalFilename);
+            $newFilename = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
+
+            try {
+                $file->move($directory, $newFilename);
+            } catch (FileException $e) {
+                continue;
+            }
+
+            $image = new Image();
+            $image->setFilename($newFilename);
+            $image->setOriginalName($file->getClientOriginalName());
+            $image->setRoom($room);
+
+            $this->em->persist($image);
+
+            $uploaded[] = [
+                'filename' => $newFilename,
+                'originalName' => $file->getClientOriginalName(),
+                'url' => '/uploads/images/rooms/' . $newFilename
+            ];
+        }
+
         $this->em->flush();
 
+        if (count($uploaded) === 0) {
+            return ['message' => 'No valid images were uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
         return [
-            'message' => 'Image uploaded successfully.',
-            'filename' => $newFilename,
-            'url' => '/uploads/images/rooms/' . $newFilename,
+            'message' => 'Images uploaded successfully.',
+            'images' => $uploaded,
             'status' => JsonResponse::HTTP_CREATED
         ];
     }
