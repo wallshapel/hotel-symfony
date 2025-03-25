@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1', name: 'api_v1_')]
 class HotelImageController extends AbstractController
 {
-    #[Route('/{id}/upload-image', name: 'upload_image', methods: ['POST'], defaults: ['_format' => null])]
+    #[Route('/hotel/{id}/upload-image', name: 'upload_image', methods: ['POST'], defaults: ['_format' => null])]
     public function uploadImage(
         int $id,
         Request $request,
@@ -24,7 +24,7 @@ class HotelImageController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/{id}/images', name: 'hotel_images', methods: ['GET'])]
+    #[Route('/hotels/{id}/images', name: 'hotel_images', methods: ['GET'])]
     public function getHotelImages(int $id, ImageUploadService $imageUploadService): JsonResponse
     {
         $result = $imageUploadService->getHotelImages($id);

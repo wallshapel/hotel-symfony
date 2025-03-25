@@ -31,6 +31,16 @@ security:
         - { path: ^/api/v1/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/hotels$, methods: [GET], roles: PUBLIC_ACCESS }
+        - {
+              path: ^/api/v1/hotels/\d+/images$,
+              methods: [GET],
+              roles: PUBLIC_ACCESS,
+          }
         - { path: ^/api/v1/rooms, methods: [GET], roles: PUBLIC_ACCESS }
+        - {
+              path: ^/api/v1/rooms/\d+/images$,
+              methods: [GET],
+              roles: PUBLIC_ACCESS,
+          }
         - { path: ^/api/v1/booking, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/api/v1, roles: IS_AUTHENTICATED_FULLY }
