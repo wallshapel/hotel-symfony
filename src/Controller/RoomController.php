@@ -15,7 +15,10 @@ class RoomController extends AbstractController
     #[Route('/room', name: 'create', methods: ['post'])]
     public function create(Request $request, RoomService $roomService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
+        }
 
         $data = json_decode($request->getContent(), true);
         $result = $roomService->create($data);
@@ -33,7 +36,10 @@ class RoomController extends AbstractController
     #[Route('/rooms/{id}/upload-image', name: 'upload_room_image', methods: ['POST'], defaults: ['_format' => null])]
     public function uploadRoomImage(int $id, Request $request, ImageUploadService $imageUploadService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
+        }
 
         $result = $imageUploadService->uploadRoomImage($id, $request);
 
@@ -46,7 +52,10 @@ class RoomController extends AbstractController
         Request $request,
         ImageUploadService $imageUploadService
     ): JsonResponse {
-        $this->denyAccessUnlessGranted('ROLE_ADMIN');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
+        }
 
         $result = $imageUploadService->updateRoomImage($id, $request);
         return $this->json($result, $result['status']);

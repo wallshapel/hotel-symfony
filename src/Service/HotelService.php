@@ -88,4 +88,24 @@ class HotelService
 
         return $data;
     }
+
+    public function delete(int $id): array
+    {
+        $hotel = $this->em->getRepository(Hotel::class)->find($id);
+
+        if (!$hotel) {
+            return [
+                'message' => 'Hotel not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $this->em->remove($hotel);
+        $this->em->flush();
+
+        return [
+            'message' => 'Hotel deleted successfully.',
+            'status' => JsonResponse::HTTP_OK
+        ];
+    }
 }

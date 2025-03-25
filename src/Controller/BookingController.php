@@ -14,7 +14,10 @@ class BookingController extends AbstractController
     #[Route('/booking', name: 'create', methods: ['post'])]
     public function create(Request $request, BookingService $bookingService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
+        }
         $data = json_decode($request->getContent(), true);
         $result = $bookingService->create($data);
 
@@ -24,7 +27,10 @@ class BookingController extends AbstractController
     #[Route('/bookings', name: 'list', methods: ['get'])]
     public function list(BookingService $bookingService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
+        }
 
         $result = $bookingService->getUserBookings();
         return $this->json($result, $result['status']);
@@ -33,7 +39,10 @@ class BookingController extends AbstractController
     #[Route('/booking/{id}', name: 'update', methods: ['patch'])]
     public function update(int $id, Request $request, BookingService $bookingService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
+        }
 
         $data = json_decode($request->getContent(), true);
         $result = $bookingService->update($id, $data);
@@ -44,7 +53,10 @@ class BookingController extends AbstractController
     #[Route('/booking/{id}', name: 'delete', methods: ['delete'])]
     public function delete(int $id, BookingService $bookingService): JsonResponse
     {
-        $this->denyAccessUnlessGranted('ROLE_USER');
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
+        }
 
         $result = $bookingService->delete($id);
         return $this->json($result, $result['status']);
