@@ -186,4 +186,33 @@ class BookingService
 
         return ['message' => 'Booking updated successfully.', 'status' => JsonResponse::HTTP_OK];
     }
+
+    public function delete(int $bookingId): array
+    {
+        $user = $this->tokenStorage->getToken()?->getUser();
+
+        if (!$user || !$user instanceof \App\Entity\User) {
+            return ['message' => 'Unauthorized', 'status' => JsonResponse::HTTP_UNAUTHORIZED];
+        }
+
+        $booking = $this->em->getRepository(Booking::class)->find($bookingId);
+
+        if (!$booking) {
+            return ['message' => 'Booking not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
+        }
+
+        if (!in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+            if ($booking->getUser()->getId() !== $user->getId()) {
+                return ['message' => 'Forbidden. You can only delete your own bookings.', 'status' => JsonResponse::HTTP_FORBIDDEN];
+            }
+        }
+
+        $room = $booking->getRoom();
+        $room->setStatus('available');
+
+        $this->em->remove($booking);
+        $this->em->flush();
+
+        return ['message' => 'Booking deleted successfully.', 'status' => JsonResponse::HTTP_OK];
+    }
 }

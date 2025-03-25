@@ -19,7 +19,7 @@ final class RoomFactory extends PersistentProxyObjectFactory
             'type' => self::faker()->randomElement(['single', 'double', 'suite']),
             'capacity' => self::faker()->numberBetween(1, 6),
             'price' => self::faker()->randomFloat(2, 50, 500),
-            'status' => self::faker()->randomElement(['pending', 'reserved']),
+            'status' => self::faker()->randomElement(['pending', 'reserved', 'available']),
             'hotel' => HotelFactory::random(),
         ];
     }

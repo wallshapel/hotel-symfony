@@ -40,4 +40,13 @@ class BookingController extends AbstractController
 
         return $this->json($result, $result['status']);
     }
+
+    #[Route('/booking/{id}', name: 'delete', methods: ['delete'])]
+    public function delete(int $id, BookingService $bookingService): JsonResponse
+    {
+        $this->denyAccessUnlessGranted('ROLE_USER');
+
+        $result = $bookingService->delete($id);
+        return $this->json($result, $result['status']);
+    }
 }
