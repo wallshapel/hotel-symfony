@@ -119,4 +119,52 @@ class RoomService
             'status' => JsonResponse::HTTP_OK
         ];
     }
+
+    public function update(int $id, array $data): array
+    {
+        $room = $this->em->getRepository(Room::class)->find($id);
+
+        if (!$room) {
+            return [
+                'message' => 'Room not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        if (isset($data['number'])) {
+            $room->setNumber($data['number']);
+        }
+
+        if (isset($data['type'])) {
+            $room->setType($data['type']);
+        }
+
+        if (isset($data['capacity'])) {
+            $room->setCapacity((int) $data['capacity']);
+        }
+
+        if (isset($data['price'])) {
+            $room->setPrice((float) $data['price']);
+        }
+
+        if (isset($data['status'])) {
+            $room->setStatus($data['status']);
+        }
+
+        $errors = $this->validator->validate($room);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return ['errors' => $errorMessages, 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $this->em->flush();
+
+        return [
+            'message' => 'Room updated successfully.',
+            'status' => JsonResponse::HTTP_OK
+        ];
+    }
 }

@@ -82,4 +82,18 @@ class RoomController extends AbstractController
         $result = $roomService->delete($id);
         return $this->json($result, $result['status']);
     }
+
+    #[Route('/room/{id}', name: 'update', methods: ['PUT'])]
+    public function update(int $id, Request $request, RoomService $roomService): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $result = $roomService->update($id, $data);
+
+        return $this->json($result, $result['status']);
+    }
 }
