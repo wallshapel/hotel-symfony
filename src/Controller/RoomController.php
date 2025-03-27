@@ -83,7 +83,7 @@ class RoomController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/room/{id}', name: 'update', methods: ['PUT'])]
+    #[Route('/room/{id}', name: 'update', methods: ['PATCH'])]
     public function update(int $id, Request $request, RoomService $roomService): JsonResponse
     {
         $user = $this->getUser();

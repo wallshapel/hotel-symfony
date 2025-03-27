@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1', name: 'api_v1_booking_')]
 class BookingController extends AbstractController
 {
-    #[Route('/booking', name: 'create', methods: ['post'])]
+    #[Route('/booking', name: 'create', methods: ['POST'])]
     public function create(Request $request, BookingService $bookingService): JsonResponse
     {
         $user = $this->getUser();
@@ -24,7 +24,7 @@ class BookingController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/bookings', name: 'list', methods: ['get'])]
+    #[Route('/bookings', name: 'list', methods: ['GET'])]
     public function list(BookingService $bookingService): JsonResponse
     {
         $user = $this->getUser();
@@ -36,7 +36,7 @@ class BookingController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/booking/{id}', name: 'update', methods: ['patch'])]
+    #[Route('/booking/{id}', name: 'update', methods: ['PATCH'])]
     public function update(int $id, Request $request, BookingService $bookingService): JsonResponse
     {
         $user = $this->getUser();
@@ -50,7 +50,7 @@ class BookingController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/booking/{id}', name: 'delete', methods: ['delete'])]
+    #[Route('/booking/{id}', name: 'delete', methods: ['DELETE'])]
     public function delete(int $id, BookingService $bookingService): JsonResponse
     {
         $user = $this->getUser();

@@ -86,7 +86,7 @@ class HotelController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/hotel/{id}', name: 'update', methods: ['PUT'])]
+    #[Route('/hotel/{id}', name: 'update', methods: ['PATCH'])]
     public function update(int $id, Request $request, HotelService $hotelService): JsonResponse
     {
         $user = $this->getUser();
