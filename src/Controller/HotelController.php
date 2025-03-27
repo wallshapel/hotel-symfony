@@ -85,4 +85,18 @@ class HotelController extends AbstractController
         $result = $hotelService->delete($id);
         return $this->json($result, $result['status']);
     }
+
+    #[Route('/hotel/{id}', name: 'update', methods: ['PUT'])]
+    public function update(int $id, Request $request, HotelService $hotelService): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $result = $hotelService->update($id, $data);
+
+        return $this->json($result, $result['status']);
+    }
 }

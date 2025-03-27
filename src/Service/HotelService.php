@@ -108,4 +108,32 @@ class HotelService
             'status' => JsonResponse::HTTP_OK
         ];
     }
+
+    public function update(int $id, array $data): array
+    {
+        $hotel = $this->hotelRepository->find($id);
+
+        if (!$hotel) {
+            return ['message' => 'Hotel not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
+        }
+
+        if (isset($data['name'])) $hotel->setName($data['name']);
+        if (isset($data['address'])) $hotel->setAddress($data['address']);
+        if (isset($data['city'])) $hotel->setCity($data['city']);
+        if (isset($data['country'])) $hotel->setCountry($data['country']);
+        if (isset($data['description'])) $hotel->setDescription($data['description']);
+
+        $errors = $this->validator->validate($hotel);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return ['errors' => $errorMessages, 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $this->em->flush();
+
+        return ['message' => 'Hotel updated successfully.', 'status' => JsonResponse::HTTP_OK];
+    }
 }
