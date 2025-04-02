@@ -69,7 +69,6 @@ class BookingService
         $booking->setRoom($room);
         $booking->setStartDate($startDate);
         $booking->setEndDate($endDate);
-        $booking->setStatus('pending');
         $booking->setCreatedAt(new \DateTimeImmutable());
         $room->setStatus('reserved');
 
@@ -85,108 +84,6 @@ class BookingService
         $this->em->flush();
 
         return ['message' => 'Booking created successfully.', 'status' => JsonResponse::HTTP_CREATED];
-    }
-
-    public function getAvailableRoomsPaginated(array $filters): array
-    {
-        $token = $this->tokenStorage->getToken();
-        $user = $token?->getUser();
-
-        if (!$user || !$user instanceof \App\Entity\User) {
-            return [
-                'message' => 'Unauthorized',
-                'status' => JsonResponse::HTTP_UNAUTHORIZED
-            ];
-        }
-
-        $startDate = $filters['start_date'] ?? null;
-        $endDate = $filters['end_date'] ?? null;
-
-        if (!$startDate || !$endDate) {
-            return [
-                'message' => 'Start and end dates are required.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
-        }
-
-        try {
-            $startDate = new \DateTime($startDate);
-            $endDate = new \DateTime($endDate);
-        } catch (\Exception $e) {
-            return [
-                'message' => 'Invalid date format.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
-        }
-
-        if ($endDate <= $startDate) {
-            return [
-                'message' => 'End date must be after start date.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
-        }
-
-        $page = max(1, (int) ($filters['page'] ?? 1));
-        $limit = max(1, (int) ($filters['limit'] ?? 10));
-        $offset = ($page - 1) * $limit;
-
-        // Query para obtener habitaciones disponibles paginadas
-        $qb = $this->em->createQueryBuilder();
-        $qb->select('r')
-            ->from(Room::class, 'r')
-            ->leftJoin('r.bookings', 'b', 'WITH', '
-            (b.startDate <= :endDate AND b.endDate >= :startDate)
-        ')
-            ->where('b.id IS NULL')
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate)
-            ->setFirstResult($offset)
-            ->setMaxResults($limit);
-
-        $rooms = $qb->getQuery()->getResult();
-
-        // Query para obtener total sin paginación
-        $countQb = $this->em->createQueryBuilder();
-        $countQb->select('COUNT(r.id)')
-            ->from(Room::class, 'r')
-            ->leftJoin('r.bookings', 'b', 'WITH', '
-            (b.startDate <= :endDate AND b.endDate >= :startDate)
-        ')
-            ->where('b.id IS NULL')
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate);
-
-        $total = (int) $countQb->getQuery()->getSingleScalarResult();
-
-        $data = array_map(function (Room $room) {
-            $hotel = $room->getHotel();
-
-            return [
-                'id' => $room->getId(),
-                'number' => $room->getNumber(),
-                'type' => $room->getType(),
-                'capacity' => $room->getCapacity(),
-                'price' => $room->getPrice(),
-                'status' => $room->getStatus(),
-                'hotel' => [
-                    'name' => $hotel->getName(),
-                    'city' => $hotel->getCity(),
-                    'country' => $hotel->getCountry(),
-                ]
-            ];
-        }, $rooms);
-
-        return [
-            'data' => $data,
-            'pagination' => [
-                'page' => $page,
-                'limit' => $limit,
-                'count' => count($data),
-                'total' => $total,
-                'totalPages' => ceil($total / $limit)
-            ],
-            'status' => JsonResponse::HTTP_OK
-        ];
     }
 
     public function update(int $bookingId, array $data): array

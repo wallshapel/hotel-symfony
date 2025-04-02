@@ -24,29 +24,127 @@ class RoomService
         $this->hotelService = $hotelService;
     }
 
+    public function getAvailableRoomsPaginated(array $filters): array
+    {
+        $startDate = $filters['start_date'] ?? null;
+        $endDate = $filters['end_date'] ?? null;
+
+        if (!$startDate || !$endDate) {
+            return [
+                'message' => 'Start and end dates are required.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+        }
+
+        try {
+            $start = new \DateTime($startDate);
+            $end = new \DateTime($endDate);
+        } catch (\Exception $e) {
+            return [
+                'message' => 'Invalid date format.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+        }
+
+        if ($end <= $start) {
+            return [
+                'message' => 'End date must be after start date.',
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+        }
+
+        $page = max(1, (int)($filters['page'] ?? 1));
+        $limit = max(1, (int)($filters['limit'] ?? 10));
+        $offset = ($page - 1) * $limit;
+
+        $qb = $this->em->createQueryBuilder();
+        $qb->select('r')
+            ->from(Room::class, 'r')
+            ->leftJoin('r.bookings', 'b', 'WITH', '
+            (b.startDate <= :endDate AND b.endDate >= :startDate)
+        ')
+            ->where('b.id IS NULL')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->setParameter('startDate', $start)
+            ->setParameter('endDate', $end);
+
+        $rooms = $qb->getQuery()->getResult();
+
+        $countQb = $this->em->createQueryBuilder();
+        $countQb->select('COUNT(r.id)')
+            ->from(Room::class, 'r')
+            ->leftJoin('r.bookings', 'b', 'WITH', '
+            (b.startDate <= :endDate AND b.endDate >= :startDate)
+        ')
+            ->where('b.id IS NULL')
+            ->setParameter('startDate', $start)
+            ->setParameter('endDate', $end);
+
+        $total = (int)$countQb->getQuery()->getSingleScalarResult();
+
+        $data = array_map(function (Room $room) {
+            $roomImages = $this->getRoomImages($room->getId());
+            $hotel = $room->getHotel();
+            $hotelImages = $this->hotelService->getHotelImages($hotel->getId());
+
+            return [
+                'id' => $room->getId(),
+                'number' => $room->getNumber(),
+                'type' => $room->getType(),
+                'capacity' => $room->getCapacity(),
+                'price' => $room->getPrice(),
+                'hotel' => [
+                    'name' => $hotel->getName(),
+                    'city' => $hotel->getCity(),
+                    'country' => $hotel->getCountry(),
+                    'images' => isset($hotelImages['status']) ? [] : $hotelImages
+                ],
+                'images' => isset($roomImages['status']) ? [] : $roomImages
+            ];
+        }, $rooms);
+
+        return [
+            'data' => $data,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'count' => count($data),
+                'total' => $total,
+                'totalPages' => ceil($total / $limit)
+            ],
+            'status' => JsonResponse::HTTP_OK
+        ];
+    }
+
     public function create(array $data): array
     {
-        if (!is_array($data))
+        if (!is_array($data)) {
             return ['message' => 'Invalid JSON format.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
 
         $hotel = $this->em->getRepository(Hotel::class)->find($data['hotel_id'] ?? 0);
-        if (!$hotel)
+        if (!$hotel) {
             return ['message' => 'Hotel not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
+        }
 
         $room = new Room();
         $room->setNumber($data['number'] ?? '');
         $room->setType($data['type'] ?? '');
         $room->setCapacity((int) ($data['capacity'] ?? 0));
         $room->setPrice((float) ($data['price'] ?? 0));
-        $room->setStatus($data['status'] ?? '');
         $room->setHotel($hotel);
+
+        if (isset($data['status'])) {
+            $room->setStatus($data['status']);
+        }
 
         $errors = $this->validator->validate($room);
         if (count($errors) > 0) {
             $errorMessages = [];
-            foreach ($errors as $error)
+            foreach ($errors as $error) {
                 $errorMessages[$error->getPropertyPath()] = $error->getMessage();
-
+            }
             return ['errors' => $errorMessages, 'status' => JsonResponse::HTTP_BAD_REQUEST];
         }
 
@@ -96,7 +194,6 @@ class RoomService
             'status_code' => JsonResponse::HTTP_OK
         ];
     }
-
 
     public function getRoomImages(int $roomId): array
     {

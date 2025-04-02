@@ -37,10 +37,6 @@ class Booking
     )]
     private ?\DateTimeInterface $endDate = null;
 
-    #[ORM\Column(length: 20)]
-    #[Assert\Choice(choices: ['pending', 'confirmed', 'cancelled'], message: "Invalid status.")]
-    private string $status = 'pending';
-
     #[ORM\Column(type: 'datetime')]
     private ?\DateTimeInterface $createdAt = null;
 
@@ -90,17 +86,6 @@ class Booking
     public function setEndDate(\DateTimeInterface $endDate): static
     {
         $this->endDate = $endDate;
-        return $this;
-    }
-
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
-
-    public function setStatus(string $status): static
-    {
-        $this->status = $status;
         return $this;
     }
 

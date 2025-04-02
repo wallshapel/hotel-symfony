@@ -12,6 +12,23 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1', name: 'api_v1_rooms_')]
 class RoomController extends AbstractController
 {
+
+    #[Route('/rooms/available', name: 'available_paginated', methods: ['GET'])]
+    public function getAvailablePaginated(Request $request, RoomService $roomService): JsonResponse
+    {
+        $filters = [
+            'start_date' => $request->query->get('start_date'),
+            'end_date' => $request->query->get('end_date'),
+            'page' => $request->query->get('page', 1),
+            'limit' => $request->query->get('limit', 10),
+        ];
+
+        $result = $roomService->getAvailableRoomsPaginated($filters);
+
+        return $this->json($result, $result['status']);
+    }
+
+
     #[Route('/room', name: 'create', methods: ['POST'])]
     public function create(Request $request, RoomService $roomService): JsonResponse
     {

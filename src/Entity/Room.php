@@ -36,8 +36,6 @@ class Room
     private ?float $price = null;
 
     #[ORM\Column(length: 50)]
-    #[Assert\NotBlank(message: "Status is required.")]
-    #[Assert\Choice(choices: ['available', 'reserved', 'maintenance', 'pending'], message: "Invalid status.")]
     private ?string $status = 'available';
 
     #[ORM\ManyToOne(inversedBy: 'rooms')]

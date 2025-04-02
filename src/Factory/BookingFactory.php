@@ -34,25 +34,20 @@ final class BookingFactory extends PersistentProxyObjectFactory
         $users = $this->userRepository->findUsersWithRole('ROLE_USER');
         $user = $faker->randomElement($users);
 
-        $pendingRooms = $this->roomRepository->findBy(['status' => 'pending']);
-
-        $reservedRooms = $this->roomRepository->findBy(['status' => 'reserved']);
-
-        $status = $faker->randomElement(['pending', 'reserved']);
-
-        if ($status === 'reserved') {
-            $room = $faker->randomElement($reservedRooms);
-            $room->setStatus('reserved');
-        } else {
-            $room = $faker->randomElement($pendingRooms);
+        $availableRooms = $this->roomRepository->findBy(['status' => 'available']);
+        if (empty($availableRooms)) {
+            throw new \RuntimeException('No available rooms to create a reservation.');
         }
+
+        $room = $faker->randomElement($availableRooms);
+
+        $room->setStatus('unavailable');
 
         return [
             'user' => $user,
             'room' => $room,
             'startDate' => $startDate,
             'endDate' => $endDate,
-            'status' => $status,
             'createdAt' => new \DateTime(),
         ];
     }
