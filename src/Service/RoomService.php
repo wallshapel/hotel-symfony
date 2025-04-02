@@ -14,12 +14,14 @@ class RoomService
     private EntityManagerInterface $em;
     private ValidatorInterface $validator;
     private RoomRepository $roomRepository;
+    private HotelService $hotelService;
 
-    public function __construct(EntityManagerInterface $em, ValidatorInterface $validator, RoomRepository $roomRepository)
+    public function __construct(EntityManagerInterface $em, ValidatorInterface $validator, RoomRepository $roomRepository, HotelService $hotelService)
     {
         $this->em = $em;
         $this->validator = $validator;
         $this->roomRepository = $roomRepository;
+        $this->hotelService = $hotelService;
     }
 
     public function create(array $data): array
@@ -54,26 +56,47 @@ class RoomService
         return ['message' => 'Room created successfully.', 'status' => JsonResponse::HTTP_CREATED];
     }
 
-    public function getAll(): array
+    public function getById(int $id): array
     {
-        $rooms = $this->roomRepository->findAll();
+        $room = $this->roomRepository->find($id);
 
-        return array_map(function ($room) {
+        if (!$room) {
             return [
-                'id' => $room->getId(),
-                'number' => $room->getNumber(),
-                'type' => $room->getType(),
-                'capacity' => $room->getCapacity(),
-                'price' => $room->getPrice(),
-                'status' => $room->getStatus(),
-                'hotel' => [
-                    'id' => $room->getHotel()->getId(),
-                    'name' => $room->getHotel()->getName(),
-                    'city' => $room->getHotel()->getCity(),
-                ],
+                'message' => 'Room not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
             ];
-        }, $rooms);
+        }
+        $roomImages = [];
+        foreach ($room->getImages() as $image) {
+            $roomImages[] = [
+                'id' => $image->getId(),
+                'filename' => $image->getFilename(),
+                'originalName' => $image->getOriginalName(),
+                'url' => '/uploads/images/rooms/' . $image->getFilename()
+            ];
+        }
+        $hotel = $room->getHotel();
+        $hotelImages = $this->hotelService->getHotelImages($hotel->getId());
+        $hotelImages = isset($hotelImages['status']) ? [] : $hotelImages;
+
+        return [
+            'id' => $room->getId(),
+            'number' => $room->getNumber(),
+            'type' => $room->getType(),
+            'capacity' => $room->getCapacity(),
+            'price' => $room->getPrice(),
+            'status' => $room->getStatus(),
+            'hotel' => [
+                'id' => $hotel->getId(),
+                'name' => $hotel->getName(),
+                'city' => $hotel->getCity(),
+                'images' => $hotelImages
+            ],
+            'images' => $roomImages,
+            'status_code' => JsonResponse::HTTP_OK
+        ];
     }
+
 
     public function getRoomImages(int $roomId): array
     {

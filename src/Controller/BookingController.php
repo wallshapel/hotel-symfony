@@ -24,17 +24,25 @@ class BookingController extends AbstractController
         return $this->json($result, $result['status']);
     }
 
-    #[Route('/bookings', name: 'list', methods: ['GET'])]
-    public function list(BookingService $bookingService): JsonResponse
+    #[Route('/bookings', name: 'available_rooms', methods: ['GET'])]
+    public function getAvailableRooms(Request $request, BookingService $bookingService): JsonResponse
     {
         $user = $this->getUser();
         if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
             return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
         }
 
-        $result = $bookingService->getUserBookings();
+        $filters = [
+            'start_date' => $request->query->get('start_date'),
+            'end_date' => $request->query->get('end_date'),
+            'page' => $request->query->get('page', 1),
+            'limit' => $request->query->get('limit', 10),
+        ];
+
+        $result = $bookingService->getAvailableRoomsPaginated($filters);
         return $this->json($result, $result['status']);
     }
+
 
     #[Route('/booking/{id}', name: 'update', methods: ['PATCH'])]
     public function update(int $id, Request $request, BookingService $bookingService): JsonResponse
