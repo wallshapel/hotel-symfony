@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use App\Entity\Booking;
+use App\Entity\Hotel;
 use App\Entity\Image;
 use App\Repository\RoomRepository;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -17,7 +19,7 @@ class Room
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
+    #[ORM\Column(length: 100)]
     #[Assert\NotBlank(message: "Room number is required.")]
     private ?string $number = null;
 
@@ -25,33 +27,36 @@ class Room
     #[Assert\NotBlank(message: "Room type is required.")]
     private ?string $type = null;
 
-    #[ORM\Column]
-    #[Assert\NotBlank(message: "Capacity is required.")]
-    #[Assert\Positive(message: "Capacity must be a positive number.")]
-    private ?int $capacity = null;
-
-    #[ORM\Column]
-    #[Assert\NotBlank(message: "Price is required.")]
-    #[Assert\PositiveOrZero(message: "Price must be zero or positive.")]
-    private ?float $price = null;
-
     #[ORM\Column(length: 50)]
-    private ?string $status = 'available';
+    #[Assert\NotBlank(message: "Room status is required.")]
+    private ?string $status = null;
+
+    #[ORM\Column(type: 'integer')]
+    #[Assert\Positive(message: "Capacity must be greater than 0.")]
+    private int $capacity;
+
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
+    #[Assert\Positive(message: "Price must be greater than 0.")]
+    private string $price;
 
     #[ORM\ManyToOne(inversedBy: 'rooms')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Hotel $hotel = null;
 
-    #[ORM\OneToMany(mappedBy: 'room', targetEntity: Booking::class, orphanRemoval: true)]
-    private Collection $bookings;
-
     #[ORM\OneToMany(mappedBy: 'room', targetEntity: Image::class, cascade: ['persist', 'remove'])]
     private Collection $images;
 
+    #[ORM\OneToMany(mappedBy: 'room', targetEntity: Booking::class, cascade: ['remove'])]
+    private Collection $bookings;
+
+    #[ORM\Column(type: 'datetime')]
+    private \DateTimeInterface $createdAt;
+
     public function __construct()
     {
-        $this->bookings = new ArrayCollection();
         $this->images = new ArrayCollection();
+        $this->bookings = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -64,10 +69,9 @@ class Room
         return $this->number;
     }
 
-    public function setNumber(string $number): self
+    public function setNumber(string $number): static
     {
         $this->number = $number;
-
         return $this;
     }
 
@@ -76,34 +80,9 @@ class Room
         return $this->type;
     }
 
-    public function setType(string $type): self
+    public function setType(string $type): static
     {
         $this->type = $type;
-
-        return $this;
-    }
-
-    public function getCapacity(): ?int
-    {
-        return $this->capacity;
-    }
-
-    public function setCapacity(int $capacity): self
-    {
-        $this->capacity = $capacity;
-
-        return $this;
-    }
-
-    public function getPrice(): ?float
-    {
-        return $this->price;
-    }
-
-    public function setPrice(float $price): self
-    {
-        $this->price = $price;
-
         return $this;
     }
 
@@ -112,10 +91,31 @@ class Room
         return $this->status;
     }
 
-    public function setStatus(string $status): self
+    public function setStatus(string $status): static
     {
         $this->status = $status;
+        return $this;
+    }
 
+    public function getCapacity(): int
+    {
+        return $this->capacity;
+    }
+
+    public function setCapacity(int $capacity): static
+    {
+        $this->capacity = $capacity;
+        return $this;
+    }
+
+    public function getPrice(): float
+    {
+        return $this->price;
+    }
+
+    public function setPrice(float $price): static
+    {
+        $this->price = $price;
         return $this;
     }
 
@@ -124,36 +124,23 @@ class Room
         return $this->hotel;
     }
 
-    public function setHotel(?Hotel $hotel): self
+    public function setHotel(?Hotel $hotel): static
     {
         $this->hotel = $hotel;
-
         return $this;
     }
 
-    public function addBooking(Booking $booking): static
+    public function getCreatedAt(): \DateTimeInterface
     {
-        if (!$this->bookings->contains($booking)) {
-            $this->bookings[] = $booking;
-            $booking->setRoom($this);
-        }
-
-        return $this;
+        return $this->createdAt;
     }
 
-    public function removeBooking(Booking $booking): static
+    public function setCreatedAt(\DateTimeInterface $createdAt): static
     {
-        if ($this->bookings->removeElement($booking)) {
-            if ($booking->getRoom() === $this)
-                $booking->setRoom(null);
-        }
-
+        $this->createdAt = $createdAt;
         return $this;
     }
 
-    /**
-     * @return Collection<int, Image>
-     */
     public function getImages(): Collection
     {
         return $this->images;
@@ -165,17 +152,40 @@ class Room
             $this->images->add($image);
             $image->setRoom($this);
         }
-
         return $this;
     }
 
     public function removeImage(Image $image): static
     {
         if ($this->images->removeElement($image)) {
-            if ($image->getRoom() === $this)
+            if ($image->getRoom() === $this) {
                 $image->setRoom(null);
+            }
         }
+        return $this;
+    }
 
+    public function getBookings(): Collection
+    {
+        return $this->bookings;
+    }
+
+    public function addBooking(Booking $booking): static
+    {
+        if (!$this->bookings->contains($booking)) {
+            $this->bookings->add($booking);
+            $booking->setRoom($this);
+        }
+        return $this;
+    }
+
+    public function removeBooking(Booking $booking): static
+    {
+        if ($this->bookings->removeElement($booking)) {
+            if ($booking->getRoom() === $this) {
+                $booking->setRoom(null);
+            }
+        }
         return $this;
     }
 }

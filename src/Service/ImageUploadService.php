@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Contract\HotelImageInterface;
+use App\Contract\RoomImageInterface;
 use App\Entity\Image;
 use App\Entity\Room;
 use App\Repository\HotelRepository;
@@ -11,7 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
-class ImageUploadService
+class ImageUploadService implements HotelImageInterface, RoomImageInterface
 {
     private string $imageDir;
     private SluggerInterface $slugger;
@@ -265,5 +267,55 @@ class ImageUploadService
             'url' => '/uploads/images/rooms/' . $newFilename,
             'status' => JsonResponse::HTTP_OK
         ];
+    }
+
+    public function getHotelImages(int $hotelId): array
+    {
+        $hotel = $this->hotelRepository->find($hotelId);
+        if (!$hotel) {
+            return [
+                'message' => 'Hotel not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $images = $hotel->getImages();
+        $data = [];
+
+        foreach ($images as $image) {
+            $data[] = [
+                'id' => $image->getId(),
+                'filename' => $image->getFilename(),
+                'originalName' => $image->getOriginalName(),
+                'url' => '/uploads/images/hotels/' . $image->getFilename()
+            ];
+        }
+
+        return $data;
+    }
+
+    public function getRoomImages(int $roomId): array
+    {
+        $room = $this->em->getRepository(Room::class)->find($roomId);
+        if (!$room) {
+            return [
+                'message' => 'Room not found.',
+                'status' => JsonResponse::HTTP_NOT_FOUND
+            ];
+        }
+
+        $images = $room->getImages();
+        $data = [];
+
+        foreach ($images as $image) {
+            $data[] = [
+                'id' => $image->getId(),
+                'filename' => $image->getFilename(),
+                'originalName' => $image->getOriginalName(),
+                'url' => '/uploads/images/rooms/' . $image->getFilename()
+            ];
+        }
+
+        return $data;
     }
 }

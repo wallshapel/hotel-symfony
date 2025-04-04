@@ -16,3 +16,10 @@ services:
     App\Service\ImageUploadService:
         arguments:
             $imageDir: "%image_directory%"
+
+    App\Contract\UserRegistrationInterface: '@App\Service\UserRegistrationService'
+    App\Contract\HotelInterface: '@App\Service\HotelService'
+    App\Contract\HotelImageInterface: '@App\Service\ImageUploadService'
+    App\Contract\RoomInterface: '@App\Service\RoomService'
+    App\Contract\RoomImageInterface: '@App\Service\ImageUploadService'
+    App\Contract\BookingInterface: '@App\Service\BookingService'

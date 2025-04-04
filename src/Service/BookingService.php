@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Contract\BookingInterface;
+use App\Contract\HotelImageInterface;
 use App\Entity\Booking;
 use App\Entity\Room;
 use App\Service\RoomService;
@@ -11,26 +13,26 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 
-class BookingService
+class BookingService implements BookingInterface
 {
     private EntityManagerInterface $em;
     private ValidatorInterface $validator;
     private TokenStorageInterface $tokenStorage;
-    private HotelService $hotelService;
     private RoomService $roomService;
+    private HotelImageInterface $hotelImageInterface;
 
     public function __construct(
         EntityManagerInterface $em,
         ValidatorInterface $validator,
         TokenStorageInterface $tokenStorage,
-        HotelService $hotelService,
-        RoomService $roomService
+        RoomService $roomService,
+        HotelImageInterface $hotelImageInterface
     ) {
         $this->em = $em;
         $this->validator = $validator;
         $this->tokenStorage = $tokenStorage;
-        $this->hotelService = $hotelService;
         $this->roomService = $roomService;
+        $this->hotelImageInterface = $hotelImageInterface;
     }
 
     public function getAllReservationsPaginated(array $filters): array
@@ -64,7 +66,7 @@ class BookingService
             $roomImages = $this->roomService->getRoomImages($room->getId());
             $roomImages = isset($roomImages['status']) ? [] : $roomImages;
 
-            $hotelImages = $this->hotelService->getHotelImages($hotel->getId());
+            $hotelImages = $this->hotelImageInterface->getHotelImages($hotel->getId());
             $hotelImages = isset($hotelImages['status']) ? [] : $hotelImages;
 
             $result[] = [
@@ -138,7 +140,7 @@ class BookingService
             $room = $booking->getRoom();
             $hotel = $room->getHotel();
             $roomImages = $this->roomService->getRoomImages($room->getId());
-            $hotelImages = $this->hotelService->getHotelImages($hotel->getId());
+            $hotelImages = $this->hotelImageInterface->getHotelImages($hotel->getId());
 
             $data[] = [
                 'id' => $booking->getId(),

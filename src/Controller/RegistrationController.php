@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Service\UserRegistrationService;
+use App\Contract\UserRegistrationInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +14,7 @@ class RegistrationController extends AbstractController
     #[Route('/register', name: 'register', methods: 'post')]
     public function register(
         Request $request,
-        UserRegistrationService $registrationService
+        UserRegistrationInterface $registrationService
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
         $result = $registrationService->registerUser($data);

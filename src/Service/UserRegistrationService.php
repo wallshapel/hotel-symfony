@@ -2,13 +2,14 @@
 
 namespace App\Service;
 
+use App\Contract\UserRegistrationInterface;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class UserRegistrationService
+class UserRegistrationService implements UserRegistrationInterface
 {
     private EntityManagerInterface $em;
     private UserPasswordHasherInterface $passwordHasher;

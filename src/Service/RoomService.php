@@ -2,6 +2,8 @@
 
 namespace App\Service;
 
+use App\Contract\HotelImageInterface;
+use App\Contract\RoomInterface;
 use App\Entity\Hotel;
 use App\Entity\Room;
 use App\Repository\RoomRepository;
@@ -9,19 +11,26 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class RoomService
+class RoomService implements RoomInterface
 {
     private EntityManagerInterface $em;
     private ValidatorInterface $validator;
     private RoomRepository $roomRepository;
     private HotelService $hotelService;
+    private HotelImageInterface $hotelImageService;
 
-    public function __construct(EntityManagerInterface $em, ValidatorInterface $validator, RoomRepository $roomRepository, HotelService $hotelService)
-    {
+    public function __construct(
+        EntityManagerInterface $em,
+        ValidatorInterface $validator,
+        RoomRepository $roomRepository,
+        HotelService $hotelService,
+        HotelImageInterface $hotelImageService
+    ) {
         $this->em = $em;
         $this->validator = $validator;
         $this->roomRepository = $roomRepository;
         $this->hotelService = $hotelService;
+        $this->hotelImageService = $hotelImageService;
     }
 
     public function getAvailableRoomsPaginated(array $filters): array
@@ -86,7 +95,7 @@ class RoomService
         $data = array_map(function (Room $room) {
             $roomImages = $this->getRoomImages($room->getId());
             $hotel = $room->getHotel();
-            $hotelImages = $this->hotelService->getHotelImages($hotel->getId());
+            $hotelImages = $this->hotelImageService->getHotelImages($hotel->getId());
 
             return [
                 'id' => $room->getId(),
@@ -174,7 +183,7 @@ class RoomService
             ];
         }
         $hotel = $room->getHotel();
-        $hotelImages = $this->hotelService->getHotelImages($hotel->getId());
+        $hotelImages = $this->hotelImageService->getHotelImages($hotel->getId());
         $hotelImages = isset($hotelImages['status']) ? [] : $hotelImages;
 
         return [

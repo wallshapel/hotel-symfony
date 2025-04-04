@@ -2,8 +2,8 @@
 
 namespace App\Controller;
 
-use App\Service\ImageUploadService;
-use App\Service\RoomService;
+use App\Contract\RoomInterface;
+use App\Security\Voter\RoleVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,8 +13,16 @@ use Symfony\Component\Routing\Attribute\Route;
 class RoomController extends AbstractController
 {
 
+    private RoomInterface $roomService;
+
+    public function __construct(
+        RoomInterface $roomService
+    ) {
+        $this->roomService = $roomService;
+    }
+
     #[Route('/rooms/available', name: 'available_paginated', methods: ['GET'])]
-    public function getAvailablePaginated(Request $request, RoomService $roomService): JsonResponse
+    public function getAvailablePaginated(Request $request): JsonResponse
     {
         $filters = [
             'start_date' => $request->query->get('start_date'),
@@ -23,30 +31,27 @@ class RoomController extends AbstractController
             'limit' => $request->query->get('limit', 10),
         ];
 
-        $result = $roomService->getAvailableRoomsPaginated($filters);
-
+        $result = $this->roomService->getAvailableRoomsPaginated($filters);
         return $this->json($result, $result['status']);
     }
 
-
     #[Route('/room', name: 'create', methods: ['POST'])]
-    public function create(Request $request, RoomService $roomService): JsonResponse
+    public function create(Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
         $data = json_decode($request->getContent(), true);
-        $result = $roomService->create($data);
+        $result = $this->roomService->create($data);
 
         return $this->json($result, $result['status']);
     }
 
     #[Route('/room/{id}', name: 'get_by_id', methods: ['GET'])]
-    public function getById(int $id, RoomService $roomService): JsonResponse
+    public function getById(int $id): JsonResponse
     {
-        $result = $roomService->getById($id);
+        $result = $this->roomService->getById($id);
 
         $status = $result['status_code'] ?? ($result['status'] ?? 200);
         unset($result['status_code']);
@@ -54,38 +59,10 @@ class RoomController extends AbstractController
         return $this->json($result, $status);
     }
 
-    #[Route('/rooms/{id}/upload-image', name: 'upload_room_image', methods: ['POST'], defaults: ['_format' => null])]
-    public function uploadRoomImage(int $id, Request $request, ImageUploadService $imageUploadService): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
-            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
-        }
-
-        $result = $imageUploadService->uploadRoomImage($id, $request);
-
-        return $this->json($result, $result['status']);
-    }
-
-    #[Route('/rooms/image/{id}/update', name: 'update_room_image', methods: ['POST'], defaults: ['_format' => null])]
-    public function updateRoomImage(
-        int $id,
-        Request $request,
-        ImageUploadService $imageUploadService
-    ): JsonResponse {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
-            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
-        }
-
-        $result = $imageUploadService->updateRoomImage($id, $request);
-        return $this->json($result, $result['status']);
-    }
-
     #[Route('/rooms/{id}/images', name: 'room_images', methods: ['GET'])]
-    public function getRoomImages(int $id, RoomService $roomService): JsonResponse
+    public function getRoomImages(int $id): JsonResponse
     {
-        $result = $roomService->getRoomImages($id);
+        $result = $this->roomService->getRoomImages($id);
 
         return isset($result['status'])
             ? $this->json($result, $result['status'])
@@ -93,27 +70,25 @@ class RoomController extends AbstractController
     }
 
     #[Route('/room/{id}', name: 'delete', methods: ['DELETE'])]
-    public function delete(int $id, RoomService $roomService): JsonResponse
+    public function delete(int $id): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
-        $result = $roomService->delete($id);
+        $result = $this->roomService->delete($id);
         return $this->json($result, $result['status']);
     }
 
     #[Route('/room/{id}', name: 'update', methods: ['PATCH'])]
-    public function update(int $id, Request $request, RoomService $roomService): JsonResponse
+    public function update(int $id, Request $request): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
         $data = json_decode($request->getContent(), true);
-        $result = $roomService->update($id, $data);
+        $result = $this->roomService->update($id, $data);
 
         return $this->json($result, $result['status']);
     }

@@ -2,7 +2,8 @@
 
 namespace App\Controller;
 
-use App\Service\BookingService;
+use App\Contract\BookingInterface;
+use App\Security\Voter\RoleVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -11,12 +12,10 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api/v1', name: 'api_v1_booking_')]
 class BookingController extends AbstractController
 {
-
     #[Route('/bookings/all', name: 'admin_list_all', methods: ['GET'])]
-    public function listAll(Request $request, BookingService $bookingService): JsonResponse
+    public function listAll(Request $request, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
@@ -31,14 +30,10 @@ class BookingController extends AbstractController
     }
 
     #[Route('/bookings/past', name: 'past_bookings', methods: ['GET'])]
-    public function getPastBookings(Request $request, BookingService $bookingService): JsonResponse
+    public function getPastBookings(Request $request, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
-            return $this->json([
-                'message' => 'Access denied. Admins only.',
-                'status' => 403
-            ], 403);
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
+            return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
         $filters = $request->query->all();
@@ -48,10 +43,9 @@ class BookingController extends AbstractController
     }
 
     #[Route('/bookings/current', name: 'current', methods: ['GET'])]
-    public function current(Request $request, BookingService $bookingService): JsonResponse
+    public function current(Request $request, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
@@ -62,10 +56,9 @@ class BookingController extends AbstractController
     }
 
     #[Route('/bookings/future', name: 'future_bookings', methods: ['GET'])]
-    public function getFutureBookings(Request $request, BookingService $bookingService): JsonResponse
+    public function getFutureBookings(Request $request, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_ADMIN', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
 
@@ -76,12 +69,12 @@ class BookingController extends AbstractController
     }
 
     #[Route('/booking', name: 'create', methods: ['POST'])]
-    public function create(Request $request, BookingService $bookingService): JsonResponse
+    public function create(Request $request, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_USER)) {
             return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
         }
+
         $data = json_decode($request->getContent(), true);
         $result = $bookingService->create($data);
 
@@ -89,10 +82,9 @@ class BookingController extends AbstractController
     }
 
     #[Route('/booking/{id}', name: 'update', methods: ['PATCH'])]
-    public function update(int $id, Request $request, BookingService $bookingService): JsonResponse
+    public function update(int $id, Request $request, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_USER)) {
             return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
         }
 
@@ -103,10 +95,9 @@ class BookingController extends AbstractController
     }
 
     #[Route('/booking/{id}', name: 'delete', methods: ['DELETE'])]
-    public function delete(int $id, BookingService $bookingService): JsonResponse
+    public function delete(int $id, BookingInterface $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        if (!$user || !in_array('ROLE_USER', $user->getRoles())) {
+        if (!$this->isGranted(RoleVoter::ROLE_USER)) {
             return $this->json(['message' => 'Access denied. Users only.', 'status' => 403], 403);
         }
 

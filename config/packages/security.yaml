@@ -32,13 +32,13 @@ security:
         - { path: ^/api/v1/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/hotels$, methods: [GET], roles: PUBLIC_ACCESS }
         - {
-              path: ^/api/v1/hotels/\d+/images$,
+              path: ^/api/v1/hotel/image/\d+,
               methods: [GET],
               roles: PUBLIC_ACCESS,
           }
         - { path: ^/api/v1/rooms, methods: [GET], roles: PUBLIC_ACCESS }
         - {
-              path: ^/api/v1/rooms/\d+/images$,
+              path: ^/api/v1/room/image/\d+,
               methods: [GET],
               roles: PUBLIC_ACCESS,
           }
