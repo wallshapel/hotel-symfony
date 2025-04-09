@@ -1,0 +1,6 @@
+security:
+  firewalls:
+    api:
+      pattern: ^/api
+      stateless: true
+      security: false

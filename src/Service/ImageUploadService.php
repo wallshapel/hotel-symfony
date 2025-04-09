@@ -36,30 +36,27 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
     {
         $hotel = $this->hotelRepository->find($hotelId);
         if (!$hotel) {
-            return [
-                'message' => 'Hotel not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Hotel not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
         $files = $request->files->get('image');
         if (!$files) {
-            return [
-                'message' => 'No images uploaded.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
+            return ['message' => 'No images uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
         }
 
         $files = is_array($files) ? $files : [$files];
 
         $directory = $this->imageDir . '/images/hotels';
-        if (!file_exists($directory))
-            mkdir($directory, 0777, true);
+        if (!file_exists($directory)) mkdir($directory, 0777, true);
 
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/svg+xml'];
+        $maxSize = 5 * 1024 * 1024;
         $uploaded = [];
 
         foreach ($files as $file) {
             if (!$file->isValid()) continue;
+            if ($file->getSize() > $maxSize) continue;
+            if (!in_array($file->getMimeType(), $allowedTypes)) continue;
 
             $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $safeFilename = $this->slugger->slug($originalFilename);
@@ -77,7 +74,6 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
             $image->setHotel($hotel);
 
             $this->em->persist($image);
-
             $uploaded[] = [
                 'filename' => $newFilename,
                 'originalName' => $file->getClientOriginalName(),
@@ -88,10 +84,7 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
         $this->em->flush();
 
         if (empty($uploaded)) {
-            return [
-                'message' => 'No valid images were uploaded.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
+            return ['message' => 'No valid images were uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
         }
 
         return [
@@ -109,7 +102,6 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
         }
 
         $files = $request->files->get('image');
-
         if (!$files) {
             return ['message' => 'No images uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
         }
@@ -117,16 +109,16 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
         $files = is_array($files) ? $files : [$files];
 
         $directory = $this->imageDir . '/images/rooms';
-        if (!file_exists($directory)) {
-            mkdir($directory, 0777, true);
-        }
+        if (!file_exists($directory)) mkdir($directory, 0777, true);
 
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/svg+xml'];
+        $maxSize = 5 * 1024 * 1024;
         $uploaded = [];
 
         foreach ($files as $file) {
-            if (!$file->isValid()) {
-                continue;
-            }
+            if (!$file->isValid()) continue;
+            if ($file->getSize() > $maxSize) continue;
+            if (!in_array($file->getMimeType(), $allowedTypes)) continue;
 
             $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $safeFilename = $this->slugger->slug($originalFilename);
@@ -144,7 +136,6 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
             $image->setRoom($room);
 
             $this->em->persist($image);
-
             $uploaded[] = [
                 'filename' => $newFilename,
                 'originalName' => $file->getClientOriginalName(),
@@ -154,7 +145,7 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
 
         $this->em->flush();
 
-        if (count($uploaded) === 0) {
+        if (empty($uploaded)) {
             return ['message' => 'No valid images were uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
         }
 
@@ -169,23 +160,29 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
     {
         $file = $request->files->get('image');
         if (!$file) {
-            return [
-                'message' => 'No image uploaded.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
+            return ['message' => 'No image uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/svg+xml'];
+        $maxSize = 5 * 1024 * 1024;
+
+        if ($file->getSize() > $maxSize) {
+            return ['message' => 'Image exceeds maximum allowed size (5MB).', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        if (!in_array($file->getMimeType(), $allowedTypes)) {
+            return ['message' => 'Unsupported image format.', 'status' => JsonResponse::HTTP_UNSUPPORTED_MEDIA_TYPE];
         }
 
         $image = $this->em->getRepository(Image::class)->find($imageId);
         if (!$image || !$image->getHotel()) {
-            return [
-                'message' => 'Hotel image not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Hotel image not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
         $previousPath = $this->imageDir . '/images/hotels/' . $image->getFilename();
-        if (file_exists($previousPath))
+        if (file_exists($previousPath)) {
             unlink($previousPath);
+        }
 
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeFilename = $this->slugger->slug($originalFilename);
@@ -193,15 +190,13 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
         $destination = $this->imageDir . '/images/hotels/';
 
         try {
-            if (!file_exists($destination))
+            if (!file_exists($destination)) {
                 mkdir($destination, 0777, true);
+            }
 
             $file->move($destination, $newFilename);
         } catch (FileException $e) {
-            return [
-                'message' => 'Image upload failed.',
-                'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR
-            ];
+            return ['message' => 'Image upload failed.', 'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR];
         }
 
         $image->setFilename($newFilename);
@@ -221,23 +216,29 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
     {
         $file = $request->files->get('image');
         if (!$file) {
-            return [
-                'message' => 'No image uploaded.',
-                'status' => JsonResponse::HTTP_BAD_REQUEST
-            ];
+            return ['message' => 'No image uploaded.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/svg+xml'];
+        $maxSize = 5 * 1024 * 1024;
+
+        if ($file->getSize() > $maxSize) {
+            return ['message' => 'Image exceeds maximum allowed size (5MB).', 'status' => JsonResponse::HTTP_BAD_REQUEST];
+        }
+
+        if (!in_array($file->getMimeType(), $allowedTypes)) {
+            return ['message' => 'Unsupported image format.', 'status' => JsonResponse::HTTP_UNSUPPORTED_MEDIA_TYPE];
         }
 
         $image = $this->em->getRepository(Image::class)->find($imageId);
         if (!$image || !$image->getRoom()) {
-            return [
-                'message' => 'Room image not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Room image not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
         $previousPath = $this->imageDir . '/images/rooms/' . $image->getFilename();
-        if (file_exists($previousPath))
+        if (file_exists($previousPath)) {
             unlink($previousPath);
+        }
 
         $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $safeFilename = $this->slugger->slug($originalFilename);
@@ -245,15 +246,13 @@ class ImageUploadService implements HotelImageInterface, RoomImageInterface
         $destination = $this->imageDir . '/images/rooms/';
 
         try {
-            if (!file_exists($destination))
+            if (!file_exists($destination)) {
                 mkdir($destination, 0777, true);
+            }
 
             $file->move($destination, $newFilename);
         } catch (FileException $e) {
-            return [
-                'message' => 'Image upload failed.',
-                'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR
-            ];
+            return ['message' => 'Image upload failed.', 'status' => JsonResponse::HTTP_INTERNAL_SERVER_ERROR];
         }
 
         $image->setFilename($newFilename);

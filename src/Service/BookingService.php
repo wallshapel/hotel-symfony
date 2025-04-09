@@ -468,7 +468,6 @@ class BookingService implements BookingInterface
 
         $booking->setStartDate($startDate);
         $booking->setEndDate($endDate);
-        $booking->setStatus('pending');
         $room->setStatus('reserved');
 
         $errors = $this->validator->validate($booking);

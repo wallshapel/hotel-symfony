@@ -4,11 +4,13 @@ security:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
             algorithm: "auto"
             cost: 15
+
     providers:
         app_user_provider:
             entity:
                 class: App\Entity\User
                 property: username
+
     firewalls:
         login:
             pattern: ^/api/v1/login
@@ -20,9 +22,11 @@ security:
             pattern: ^/api
             stateless: true
             jwt: ~
+
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
+
         main:
             lazy: true
             provider: app_user_provider

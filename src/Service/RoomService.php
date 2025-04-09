@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Contract\HotelImageInterface;
 use App\Contract\RoomInterface;
+use App\DataTransformer\RoomInputTransformer;
 use App\Entity\Hotel;
 use App\Entity\Room;
 use App\Repository\RoomRepository;
@@ -16,21 +17,21 @@ class RoomService implements RoomInterface
     private EntityManagerInterface $em;
     private ValidatorInterface $validator;
     private RoomRepository $roomRepository;
-    private HotelService $hotelService;
     private HotelImageInterface $hotelImageService;
+    private RoomInputTransformer $transformer;
 
     public function __construct(
         EntityManagerInterface $em,
         ValidatorInterface $validator,
         RoomRepository $roomRepository,
-        HotelService $hotelService,
-        HotelImageInterface $hotelImageService
+        HotelImageInterface $hotelImageService,
+        RoomInputTransformer $transformer
     ) {
         $this->em = $em;
         $this->validator = $validator;
         $this->roomRepository = $roomRepository;
-        $this->hotelService = $hotelService;
         $this->hotelImageService = $hotelImageService;
+        $this->transformer = $transformer;
     }
 
     public function getAvailableRoomsPaginated(array $filters): array
@@ -69,9 +70,7 @@ class RoomService implements RoomInterface
         $qb = $this->em->createQueryBuilder();
         $qb->select('r')
             ->from(Room::class, 'r')
-            ->leftJoin('r.bookings', 'b', 'WITH', '
-            (b.startDate <= :endDate AND b.endDate >= :startDate)
-        ')
+            ->leftJoin('r.bookings', 'b', 'WITH', '(b.startDate <= :endDate AND b.endDate >= :startDate)')
             ->where('b.id IS NULL')
             ->setFirstResult($offset)
             ->setMaxResults($limit)
@@ -83,9 +82,7 @@ class RoomService implements RoomInterface
         $countQb = $this->em->createQueryBuilder();
         $countQb->select('COUNT(r.id)')
             ->from(Room::class, 'r')
-            ->leftJoin('r.bookings', 'b', 'WITH', '
-            (b.startDate <= :endDate AND b.endDate >= :startDate)
-        ')
+            ->leftJoin('r.bookings', 'b', 'WITH', '(b.startDate <= :endDate AND b.endDate >= :startDate)')
             ->where('b.id IS NULL')
             ->setParameter('startDate', $start)
             ->setParameter('endDate', $end);
@@ -128,25 +125,12 @@ class RoomService implements RoomInterface
 
     public function create(array $data): array
     {
-        if (!is_array($data)) {
-            return ['message' => 'Invalid JSON format.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
-        }
-
         $hotel = $this->em->getRepository(Hotel::class)->find($data['hotel_id'] ?? 0);
         if (!$hotel) {
             return ['message' => 'Hotel not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
-        $room = new Room();
-        $room->setNumber($data['number'] ?? '');
-        $room->setType($data['type'] ?? '');
-        $room->setCapacity((int) ($data['capacity'] ?? 0));
-        $room->setPrice((float) ($data['price'] ?? 0));
-        $room->setHotel($hotel);
-
-        if (isset($data['status'])) {
-            $room->setStatus($data['status']);
-        }
+        $room = $this->transformer->fromArray($data, $hotel);
 
         $errors = $this->validator->validate($room);
         if (count($errors) > 0) {
@@ -168,11 +152,9 @@ class RoomService implements RoomInterface
         $room = $this->roomRepository->find($id);
 
         if (!$room) {
-            return [
-                'message' => 'Room not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Room not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
+
         $roomImages = [];
         foreach ($room->getImages() as $image) {
             $roomImages[] = [
@@ -182,6 +164,7 @@ class RoomService implements RoomInterface
                 'url' => '/uploads/images/rooms/' . $image->getFilename()
             ];
         }
+
         $hotel = $room->getHotel();
         $hotelImages = $this->hotelImageService->getHotelImages($hotel->getId());
         $hotelImages = isset($hotelImages['status']) ? [] : $hotelImages;
@@ -208,10 +191,7 @@ class RoomService implements RoomInterface
     {
         $room = $this->em->getRepository(Room::class)->find($roomId);
         if (!$room) {
-            return [
-                'message' => 'Room not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Room not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
         $images = $room->getImages();
@@ -234,51 +214,23 @@ class RoomService implements RoomInterface
         $room = $this->em->getRepository(Room::class)->find($id);
 
         if (!$room) {
-            return [
-                'message' => 'Room not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Room not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
         $this->em->remove($room);
         $this->em->flush();
 
-        return [
-            'message' => 'Room deleted successfully.',
-            'status' => JsonResponse::HTTP_OK
-        ];
+        return ['message' => 'Room deleted successfully.', 'status' => JsonResponse::HTTP_OK];
     }
 
     public function update(int $id, array $data): array
     {
         $room = $this->em->getRepository(Room::class)->find($id);
-
         if (!$room) {
-            return [
-                'message' => 'Room not found.',
-                'status' => JsonResponse::HTTP_NOT_FOUND
-            ];
+            return ['message' => 'Room not found.', 'status' => JsonResponse::HTTP_NOT_FOUND];
         }
 
-        if (isset($data['number'])) {
-            $room->setNumber($data['number']);
-        }
-
-        if (isset($data['type'])) {
-            $room->setType($data['type']);
-        }
-
-        if (isset($data['capacity'])) {
-            $room->setCapacity((int) $data['capacity']);
-        }
-
-        if (isset($data['price'])) {
-            $room->setPrice((float) $data['price']);
-        }
-
-        if (isset($data['status'])) {
-            $room->setStatus($data['status']);
-        }
+        $room = $this->transformer->updateFromArray($room, $data);
 
         $errors = $this->validator->validate($room);
         if (count($errors) > 0) {
@@ -291,9 +243,6 @@ class RoomService implements RoomInterface
 
         $this->em->flush();
 
-        return [
-            'message' => 'Room updated successfully.',
-            'status' => JsonResponse::HTTP_OK
-        ];
+        return ['message' => 'Room updated successfully.', 'status' => JsonResponse::HTTP_OK];
     }
 }

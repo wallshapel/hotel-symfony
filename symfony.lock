@@ -74,6 +74,20 @@
             "config/packages/lexik_jwt_authentication.yaml"
         ]
     },
+    "phpunit/phpunit": {
+        "version": "12.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "10.0",
+            "ref": "b786e93f0b38027289867faca488b8c511436fe0"
+        },
+        "files": [
+            ".env.test",
+            "phpunit.dist.xml",
+            "tests/bootstrap.php"
+        ]
+    },
     "symfony/console": {
         "version": "6.4",
         "recipe": {

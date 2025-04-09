@@ -23,3 +23,7 @@ services:
     App\Contract\RoomInterface: '@App\Service\RoomService'
     App\Contract\RoomImageInterface: '@App\Service\ImageUploadService'
     App\Contract\BookingInterface: '@App\Service\BookingService'
+
+    App\Security\Voter\RoleVoter:
+        arguments:
+            $kernel: "@kernel"

@@ -15,7 +15,7 @@ class HotelController extends AbstractController
 
     #[Route('/', name: 'create', methods: ['POST'])]
     public function create(Request $request, HotelInterface $hotelService): JsonResponse
-    {
+    {        
         if (!$this->isGranted(RoleVoter::ROLE_ADMIN)) {
             return $this->json(['message' => 'Access denied. Admins only.', 'status' => 403], 403);
         }
