@@ -30,6 +30,22 @@ class UserRegistrationService implements UserRegistrationInterface
         if (!is_array($data))
             return ['message' => 'Invalid JSON format.', 'status' => JsonResponse::HTTP_BAD_REQUEST];
 
+        $requiredFields = ['email', 'username', 'password'];
+        $missingFields = [];
+
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                $missingFields[] = $field;
+            }
+        }
+
+        if (!empty($missingFields)) {
+            return [
+                'message' => 'Missing required fields: ' . implode(', ', $missingFields),
+                'status' => JsonResponse::HTTP_BAD_REQUEST
+            ];
+        }
+
         $email = $data['email'] ?? '';
         $username = $data['username'] ?? '';
         $password = $data['password'] ?? '';
